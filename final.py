@@ -21,8 +21,8 @@ def load_pdf(path):
 
 # 文档切片
 text_splitter = RecursiveCharacterTextSplitter(
-    chunk_size=500,                  # 指定每个文本块的目标大小
-    chunk_overlap=0,                # 指定文本块之间的重叠字符数
+    chunk_size=1000,                  # 指定每个文本块的目标大小
+    chunk_overlap=500,                # 指定文本块之间的重叠字符数
     length_function=len,             # 用于测量文本长度的函数
     is_separator_regex=False,        # 指定`separators`中的分隔符是否应被视为正则表达式，这里设置为False，表示分隔符是字面字符
     separators=['。','，','\n\n', '\n', ',', '.',]

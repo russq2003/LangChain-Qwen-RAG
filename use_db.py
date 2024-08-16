@@ -14,7 +14,7 @@ DASHSCOPE_API_KEY = 'sk-a2da8256eb84494bb91e1f27488a65cb'
 os.environ["DASHSCOPE_API_KEY"] = DASHSCOPE_API_KEY
 
 # 指定存储向量数据库的目录
-persist_directory = 'WINDPOWER-FINAL4/chroma_db'
+persist_directory = 'vector_base/(1000,0,pdfplumber)/chroma_db'
 
 # embedding
 model_name = "sentence-transformers/multi-qa-mpnet-base-dot-v1"   # embedding的模型，可调
@@ -45,7 +45,7 @@ llm = Tongyi(model_name='qwen-max', temperature=1)  # 基础模型可以改，te
 chain = chat_prompt | llm
 
 messages = []
-MAX_messages = 5
+MAX_messages = 2
 print("你好，我是电力行业专家，有任何关于电力的专业问题都可以向我提问！")
 while True:
     # 定义问题
@@ -56,7 +56,7 @@ while True:
         messages = messages[-MAX_messages:]  # 保留最后MAX_MESSAGES_HISTORY条消息
 
     # 相似度方法通过查询文本检索数据
-    similarDocs = db.similarity_search(question, k=20)
+    similarDocs = db.similarity_search(question, k=10)
     if not similarDocs:
         print("没有找到相关文档。")
     else:

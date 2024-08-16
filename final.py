@@ -49,7 +49,7 @@ texts = text_splitter.split_documents(pages)
 db = Chroma.from_documents(
     documents=texts,
     embedding=hf,
-    persist_directory='vector_base/(1000,10,8.15)/chroma_db'
+    persist_directory='vector_base/(1000,10,8.16)/chroma_db'
 )
 # db.persist()  # 立即持久化数据库
 
@@ -100,7 +100,7 @@ while True:
         # print("找到相关文档。")
         summary_prompt = "".join([doc.page_content for doc in similarDocs])
 
-        send_message = f"你可以参考一下信息：({summary_prompt})回答({question})这个问题，如果没有找到与({question})相关的信息请如实回答，不要编造"
+        send_message = f"你可以参考以下信息：({summary_prompt})回答({question})这个问题，如果没有找到与({question})相关的信息请如实回答，不要编造"
         messages.append({'role': Role.USER, 'content': send_message})
 
         # 调用 chain.invoke

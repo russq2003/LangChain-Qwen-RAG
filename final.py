@@ -9,16 +9,22 @@ from langchain_community.llms import Tongyi
 from langchain.prompts.chat import (ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate)
 from dashscope.api_entities.dashscope_response import Role
 from transformers import pipeline,AutoTokenizer,AutoModelForSeq2SeqLM
+import pdfplumber
 
 # 开始计时
 start_time = time.time()
 warnings.filterwarnings("ignore")
 
-# 文档读取
 def load_pdf(path):
-    loader = PyPDFLoader(path)
-    pages = loader.load_and_split()
-    return pages
+    text = ''
+    with pdfplumber.open(path) as pdf:
+        for page in pdf.pages:
+            text += page.extract_text() + '\n'
+            tables = page.extract_tables()
+            for table in tables:
+                for row in table:
+                    text += ", ".join(row) + "\n"
+    return text
 
 # 文档切片
 text_splitter = RecursiveCharacterTextSplitter(
@@ -43,13 +49,13 @@ hf = HuggingFaceEmbeddings(
 pdf_path = 'D:\EEAgent1\doc\大创结题报告-final.pdf'
 pages = load_pdf(pdf_path)
 # texts = pages
-texts = text_splitter.split_documents(pages)
+texts = text_splitter.split_text(pages)
 
 # 存储嵌入向量库
-db = Chroma.from_documents(
-    documents=texts,
+db = Chroma.from_texts(
+    texts=texts,
     embedding=hf,
-    persist_directory='vector_base/(1000,10,8.16)/chroma_db'
+    persist_directory='vector_base/(1000,10,8.19-1)/chroma_db'
 )
 # db.persist()  # 立即持久化数据库
 
@@ -78,8 +84,8 @@ summary_counter = 0
 # MAX_messages = 5
 
 # 初始化摘要模型
-tokenizer = AutoTokenizer.from_pretrained("t5-small")
-summarize_model = AutoModelForSeq2SeqLM.from_pretrained("t5-small")
+tokenizer = AutoTokenizer.from_pretrained("csebuetnlp/mT5_multilingual_XLSum")
+summarize_model = AutoModelForSeq2SeqLM.from_pretrained("csebuetnlp/mT5_multilingual_XLSum")
 summarizer = pipeline("summarization", model=summarize_model, tokenizer=tokenizer)
 
 print("你好，我是电力行业专家，有任何关于电力的专业问题都可以向我提问！")

@@ -9,6 +9,7 @@ from langchain_community.llms import Tongyi
 from langchain.prompts.chat import (ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate)
 from dashscope.api_entities.dashscope_response import Role
 from transformers import pipeline,AutoTokenizer,AutoModelForSeq2SeqLM
+import torch
 
 # # Qwen模型API
 DASHSCOPE_API_KEY = 'sk-a2da8256eb84494bb91e1f27488a65cb'
@@ -49,10 +50,37 @@ messages = []
 summary_counter = 0
 # MAX_messages = 5
 
-# 初始化摘要模型
-tokenizer = AutoTokenizer.from_pretrained("csebuetnlp/mT5_multilingual_XLSum")
-summarize_model = AutoModelForSeq2SeqLM.from_pretrained("csebuetnlp/mT5_multilingual_XLSum")
-summarizer = pipeline("summarization", model=summarize_model, tokenizer=tokenizer)
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
+print(f'Using {device} device')
+
+# model_checkpoint = "google/mt5-small"
+# tokenizer = AutoTokenizer.from_pretrained(model_checkpoint)
+# model = AutoModelForSeq2SeqLM.from_pretrained(model_checkpoint).to(device)
+
+# # 生成摘要的函数
+# def generate_summary(history_text):
+#     input_ids = tokenizer(
+#         history_text,
+#         return_tensors="pt",
+#         truncation=True,
+#         max_length=512    # 限制最长输入
+#     ).to(device)  # 将张量移动到GPU/CPU上
+
+#     generated_tokens = model.generate(
+#         input_ids["input_ids"],
+#         attention_mask=input_ids["attention_mask"],
+#         max_length=1024, # 限制最长总结输出
+#         min_length = 128,
+#         no_repeat_ngram_size=2,
+#         num_beams=4
+#     )
+
+#     summary = tokenizer.decode(
+#         generated_tokens[0],
+#         skip_special_tokens=True,
+#         clean_up_tokenization_spaces=False
+#     )
+#     return summary
 
 print("你好，我是电力行业专家，有任何关于电力的专业问题都可以向我提问！")
 while True:
@@ -73,7 +101,7 @@ while True:
         summary_prompt = "".join([doc.page_content for doc in similarDocs])
 
         send_message = f"你可以参考以下信息：({summary_prompt})回答({question})这个问题，如果没有找到与({question})相关的信息请如实回答，不要编造"
-        messages.append({'role': Role.USER, 'content': send_message})
+        messages.append({'role': Role.ATTACHMENT, 'content': send_message})
 
         # 调用 chain.invoke
         ans = chain.invoke({"question": messages})
@@ -84,9 +112,13 @@ while True:
 
     # 如果messages达到一定长度，则进行摘要
     if len(messages) >= 2 and summary_counter == 0:
-        history_text = "\n".join([msg['content'] for msg in messages])
-        summary = summarizer(history_text, max_length=1000, min_length=500, do_sample=False)
-        messages = [{'role': Role.SYSTEM, 'content': summary[0]['summary_text']}]
+        # history_text = "\n".join([msg['content'] for msg in messages if msg['role'] != 'attachment'])
+        summary_message = f"对以上信息进行总结，着重提炼并记住在前面的信息"
+        messages.append({'role':Role.BOT,'content':summary_message})
+        # summary = generate_summary(history_text)
+        filtered_messages = [msg for msg in messages if msg['role'] != 'attachment']
+        summary = chain.invoke({"question":filtered_messages})
+        messages = [{'role': Role.SYSTEM, 'content': summary}]
         summary_counter += 1  # 更新摘要次数
 
     # 重置summary_counter，以便下次达到条件时再次进行摘要
